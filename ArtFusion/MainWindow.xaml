@@ -6,7 +6,10 @@
         xmlns:local="clr-namespace:ArtFusion"
         mc:Ignorable="d"
         Title="MainWindow" Height="450" Width="800">
-    <Grid>
-
-    </Grid>
+    <StackPanel>
+        <Button x:Name="ListImageInpBtn" Content="Chosse Images" Width="90" Height="40" Click="ListImageInpBtn_Click"/>
+        <Button x:Name="MainImageInputBtn" Content="Chosse Image" Click="MainImageInputBtn_Click" Height="40" Width="90" />
+        <Slider x:Name="ScaleSlider" Maximum="10" Minimum="0" Interval="1" IsSnapToTickEnabled="True" TickFrequency="1" Margin="70 0"/>
+        <Button x:Name="GenerateButton" Content="Generate" Click="GenerateButton_Click" Width="70" Height="40"/>
+    </StackPanel> 
 </Window>
