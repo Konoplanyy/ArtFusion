@@ -6,10 +6,91 @@
         xmlns:local="clr-namespace:ArtFusion"
         mc:Ignorable="d"
         Title="MainWindow" Height="450" Width="800">
-    <StackPanel>
-        <Button x:Name="ListImageInpBtn" Content="Chosse Images" Width="90" Height="40" Click="ListImageInpBtn_Click"/>
-        <Button x:Name="MainImageInputBtn" Content="Chosse Image" Click="MainImageInputBtn_Click" Height="40" Width="90" />
+    <Window.Resources>
+        <Style x:Key="MsSansSerifBold">
+            <Setter Property="TextElement.FontFamily" Value="Resources/fonts/#Ms Sans Serif Bold"/>
+        </Style>
+        <Style x:Key="MsSansSerif">
+            <Setter Property="TextElement.FontFamily" Value="Resources/fonts/#Ms Sans Serif"/>
+        </Style>
+        <Style TargetType="Slider">
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Slider">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <RepeatButton Grid.Column="0" 
+                                  Width="20" 
+                                  Height="20" 
+                                  Command="Slider.DecreaseLarge"
+                                  Background="Gray" 
+                                  BorderBrush="Black" 
+                                  BorderThickness="1">
+                                <Grid>
+                                    <Thumb Width="17" Height="17" Background="#BEC2C5" BorderBrush="Black"/>
+                                    <Image Source="/Resources/Images/LeftArrow.png" Margin="1 2 3 2"/>
+                                </Grid>
+                            </RepeatButton>
+                            <Track Grid.Column="1" Name="PART_Track">
+                                <Track.DecreaseRepeatButton>
+                                    <RepeatButton Background="LightGray" BorderBrush="Black" BorderThickness="1"/>
+                                </Track.DecreaseRepeatButton>
+                                <Track.Thumb>
+                                    <Thumb Width="20" Height="20" Background="#BEC2C5" BorderBrush="Black" BorderThickness="1"/>
+                                </Track.Thumb>
+                                <Track.IncreaseRepeatButton>
+                                    <RepeatButton Background="LightGray" BorderBrush="Black" BorderThickness="1"/>
+                                </Track.IncreaseRepeatButton>
+                            </Track>
+                            <RepeatButton Grid.Column="2" 
+                                  Width="20" 
+                                  Height="20" 
+                                  Command="Slider.IncreaseLarge"
+                                  Background="Gray" 
+                                  BorderBrush="Black" 
+                                  BorderThickness="1">
+                                <Grid>
+                                    <Thumb Width="17" Height="17" Background="#BEC2C5" BorderBrush="Black"/>
+                                    <Image Source="/Resources/Images/RightArrow.png" Margin="3 2 1 2"/>
+                                </Grid>
+                            </RepeatButton>
+                        </Grid>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+    </Window.Resources>
+    <StackPanel Background="#C0C0C0">
+        <DockPanel>
+            <Button x:Name="ListImageInpBtn" Width="120" Height="120" Click="ListImageInpBtn_Click" Margin="120 100 40 70" Padding="0">
+                <Button.Content>
+                    <Grid>
+                        <Thumb Margin="-4 0" Background="#BEC2C5" BorderBrush="Black"/>
+                        <Image Source="/Resources/Images/Upload.png"/>
+                    </Grid>
+                </Button.Content>
+            </Button>
+            <Button x:Name="MainImageInputBtn" Click="MainImageInputBtn_Click" Height="120" Width="120" Margin="120 100 40 70" Padding="0">
+                <Button.Content>
+                    <Grid>
+                        <Thumb Margin="-4 0" Background="#BEC2C5" BorderBrush="Black"/>
+                        <Image Source="/Resources/Images/Upload.png"/>
+                    </Grid>
+                </Button.Content>
+            </Button>
+        </DockPanel>
         <Slider x:Name="ScaleSlider" Maximum="10" Minimum="0" Interval="1" IsSnapToTickEnabled="True" TickFrequency="1" Margin="70 0"/>
-        <Button x:Name="GenerateButton" Content="Generate" Click="GenerateButton_Click" Width="70" Height="40"/>
+        <Button x:Name="GenerateButton" Click="GenerateButton_Click" Width="107" Height="23" Margin="50">
+            <Button.Content>
+                <TextBlock Text="Generate" Style="{DynamicResource MsSansSerif}" FontSize="16"/>
+            </Button.Content>
+            <Button.Background>
+                <ImageBrush ImageSource="/Resources/Images/Button.png"/>
+            </Button.Background>
+        </Button>
     </StackPanel> 
 </Window>
