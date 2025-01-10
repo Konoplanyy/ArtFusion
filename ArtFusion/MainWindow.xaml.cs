@@ -1,7 +1,7 @@
 ﻿using Microsoft.Win32;
 using System.Text;
 using System.Windows;
-using System.Windows.Controls;
+using SixLabors.ImageSharp;
 using System.Windows.Data;
 using System.Windows.Documents;
 using System.Windows.Input;
@@ -9,9 +9,10 @@ using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
 using System.Windows.Shapes;
-using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.Processing;
 using System.IO;
+using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Formats.Bmp;
 
 namespace ArtFusion
 {
@@ -40,12 +41,29 @@ namespace ArtFusion
             if (inpImg.ShowDialog() == false)
                 return;
 
-            BitmapImage bitmapImage = new BitmapImage(new Uri(inpImg.FileName));
             ShowImage showImage = new ShowImage();
-            showImage.Img.Source = bitmapImage;
 
-            showImage.Height = bitmapImage.Height;
-            showImage.Width = bitmapImage.Width;
+            using (Image<Rgba32> image = Image.Load<Rgba32>(inpImg.FileName))
+            {
+                image.Mutate(x => x.Resize(100, 100));
+
+                using (var ms = new MemoryStream())
+                {
+                    image.Save(ms, new BmpEncoder()); // Зберігаємо у формат BMP для сумісності
+                    ms.Seek(0, SeekOrigin.Begin);
+
+                    // Конвертуємо в BitmapImage для WPF
+                    BitmapImage bitmapImage = new BitmapImage();
+                    bitmapImage.BeginInit();
+                    bitmapImage.StreamSource = ms;
+                    bitmapImage.EndInit();
+
+                    // Присвоюємо ImageSource
+                    showImage.Img.Source = bitmapImage;
+                    showImage.Width = bitmapImage.Width;
+                    showImage.Height = bitmapImage.Height;
+                }
+            }
 
             showImage.Show();
 
