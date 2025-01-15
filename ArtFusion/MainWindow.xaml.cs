@@ -45,19 +45,24 @@ namespace ArtFusion
 
             ShowImage showImage = new ShowImage();
 
+            //зберігає картинку в bitmap
             BitmapImage bitmapImage = new BitmapImage();
             bitmapImage.BeginInit();
             bitmapImage.UriSource = new Uri(inpImg.FileName, UriKind.Absolute);
             bitmapImage.EndInit();
 
-            double newWidth = 20;  // Новий розмір за шириною
-            double newHeight = 20; // Новий розмір за висотою
+            //maybe temp
+            double newWidth = 20; 
+            double newHeight = 20;
 
+            //перетворює змінює розмір
             ScaleTransform scale = new ScaleTransform(newWidth / bitmapImage.PixelWidth, newHeight / bitmapImage.PixelHeight);
 
             TransformedBitmap transformedBitmap = new TransformedBitmap(bitmapImage, scale);
 
-            RenderOptions.SetBitmapScalingMode(showImage, BitmapScalingMode.NearestNeighbor);
+            RenderOptions.SetBitmapScalingMode(showImage, BitmapScalingMode.NearestNeighbor); // виключає зглажування
+
+            
 
             showImage.Img.Source = transformedBitmap;
             showImage.Show();
@@ -76,6 +81,48 @@ namespace ArtFusion
                 return;
 
 
+        }
+
+        private static Dictionary<System.Drawing.Point, System.Drawing.Color> ConvertImageToColorArray(BitmapSource image)
+        {
+            //створює масив кольорів
+            WriteableBitmap writeableBitmap = new WriteableBitmap(image);
+
+            Dictionary<System.Drawing.Point, System.Drawing.Color> imageColors = new Dictionary<System.Drawing.Point, System.Drawing.Color>();
+
+            for (int i = 0; i < writeableBitmap.PixelWidth; i++)
+            {
+                for (int j = 0; j < writeableBitmap.PixelHeight; j++)
+                {
+                    System.Drawing.Color pixelColor = GetPixelColor(writeableBitmap, i, j);
+                    imageColors.Add(new System.Drawing.Point(i, j), pixelColor);
+                }
+            }
+
+            return imageColors;
+        }
+
+        private static System.Drawing.Color GetPixelColor(BitmapSource bitmap, int x, int y)
+        {
+            if (bitmap == null)
+                throw new ArgumentNullException(nameof(bitmap));
+            if (x < 0 || x >= bitmap.PixelWidth || y < 0 || y >= bitmap.PixelHeight)
+                throw new ArgumentOutOfRangeException("Координати виходять за межі зображення.");
+
+            int bytesPerPixel = (bitmap.Format.BitsPerPixel + 7) / 8;
+            byte[] pixelData = new byte[bytesPerPixel];
+
+            // Витягуємо один піксель
+            var rect = new Int32Rect(x, y, 1, 1);
+            bitmap.CopyPixels(rect, pixelData, bytesPerPixel, 0);
+
+            // Припускаємо формат Bgra32
+            byte blue = pixelData[0];
+            byte green = pixelData[1];
+            byte red = pixelData[2];
+            byte alpha = pixelData[3];
+
+            return System.Drawing.Color.FromArgb(alpha, red, green, blue);
         }
     }
 }
