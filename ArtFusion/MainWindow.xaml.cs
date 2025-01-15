@@ -13,6 +13,8 @@ using SixLabors.ImageSharp.Processing;
 using System.IO;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Formats.Bmp;
+using System.Drawing;
+using System.Windows.Interop;
 
 namespace ArtFusion
 {
@@ -43,29 +45,23 @@ namespace ArtFusion
 
             ShowImage showImage = new ShowImage();
 
-            using (Image<Rgba32> image = Image.Load<Rgba32>(inpImg.FileName))
-            {
-                image.Mutate(x => x.Resize(100, 100));
+            BitmapImage bitmapImage = new BitmapImage();
+            bitmapImage.BeginInit();
+            bitmapImage.UriSource = new Uri(inpImg.FileName, UriKind.Absolute);
+            bitmapImage.EndInit();
 
-                using (var ms = new MemoryStream())
-                {
-                    image.Save(ms, new BmpEncoder()); // Зберігаємо у формат BMP для сумісності
-                    ms.Seek(0, SeekOrigin.Begin);
+            double newWidth = 20;  // Новий розмір за шириною
+            double newHeight = 20; // Новий розмір за висотою
 
-                    // Конвертуємо в BitmapImage для WPF
-                    BitmapImage bitmapImage = new BitmapImage();
-                    bitmapImage.BeginInit();
-                    bitmapImage.StreamSource = ms;
-                    bitmapImage.EndInit();
+            ScaleTransform scale = new ScaleTransform(newWidth / bitmapImage.PixelWidth, newHeight / bitmapImage.PixelHeight);
 
-                    // Присвоюємо ImageSource
-                    showImage.Img.Source = bitmapImage;
-                    showImage.Width = bitmapImage.Width;
-                    showImage.Height = bitmapImage.Height;
-                }
-            }
+            TransformedBitmap transformedBitmap = new TransformedBitmap(bitmapImage, scale);
 
+            RenderOptions.SetBitmapScalingMode(showImage, BitmapScalingMode.NearestNeighbor);
+
+            showImage.Img.Source = transformedBitmap;
             showImage.Show();
+
 
         }
 
