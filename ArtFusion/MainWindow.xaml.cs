@@ -15,6 +15,7 @@ using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Formats.Bmp;
 using System.Drawing;
 using System.Windows.Interop;
+using System.Collections.Generic;
 
 namespace ArtFusion
 {
@@ -23,14 +24,20 @@ namespace ArtFusion
     /// </summary>
     public partial class MainWindow : Window
     {
+        private Dictionary<System.Drawing.Point, System.Drawing.Color> MainImageColors { get; set; }
+        private Dictionary<BitmapSource, System.Drawing.Color> tileData {  get; set; }
+
         public MainWindow()
         {
             InitializeComponent();
+            MainImageColors = new Dictionary<System.Drawing.Point, System.Drawing.Color>();
+            tileData = new Dictionary<BitmapSource, System.Drawing.Color>();
         }
 
         private void GenerateButton_Click(object sender, RoutedEventArgs e)
         {
-
+            var resImg = GenerateImageFromTiles(MainImageColors, tileData);
+            ShowImage(resImg);
         }
 
         private void MainImageInputBtn_Click(object sender, RoutedEventArgs e)
@@ -42,8 +49,6 @@ namespace ArtFusion
 
             if (inpImg.ShowDialog() == false)
                 return;
-
-            ShowImage showImage = new ShowImage();
 
             //зберігає картинку в bitmap
             BitmapImage bitmapImage = new BitmapImage();
@@ -60,12 +65,7 @@ namespace ArtFusion
 
             TransformedBitmap transformedBitmap = new TransformedBitmap(bitmapImage, scale);
 
-            RenderOptions.SetBitmapScalingMode(showImage, BitmapScalingMode.NearestNeighbor); // виключає зглажування
-
-            
-
-            showImage.Img.Source = transformedBitmap;
-            showImage.Show();
+            MainImageColors = ConvertImageToColorArray(transformedBitmap);
 
 
         }
@@ -80,7 +80,39 @@ namespace ArtFusion
             if (inpImgs.ShowDialog() == false)
                 return;
 
+            List<BitmapImage> images = new List<BitmapImage>();
 
+            foreach (var FileName in inpImgs.FileNames)
+            {
+                try
+                {
+                    if (File.Exists(FileName))
+                    {
+                        // Зберігає картинку в bitmap
+                        BitmapImage bitmapImage = new BitmapImage();
+                        bitmapImage.BeginInit();
+                        bitmapImage.UriSource = new Uri(FileName, UriKind.Absolute);
+                        bitmapImage.CacheOption = BitmapCacheOption.OnLoad; // Завантажує зображення одразу
+                        bitmapImage.EndInit();
+                        images.Add(bitmapImage);
+                    }
+                    else
+                    {
+                        // Логування або обробка відсутності файлу
+                        Console.WriteLine($"Файл не знайдено: {FileName}");
+                    }
+                }
+                catch (Exception ex)
+                {
+                    // Логування або обробка винятку
+                    Console.WriteLine($"Помилка при завантаженні зображення: {ex.Message}");
+                }
+            }
+
+            foreach (BitmapImage Image in images)
+            {
+                tileData.Add(Image, GetImageColor(Image));
+            }
         }
 
         private static Dictionary<System.Drawing.Point, System.Drawing.Color> ConvertImageToColorArray(BitmapSource image)
@@ -123,6 +155,119 @@ namespace ArtFusion
             byte alpha = pixelData[3];
 
             return System.Drawing.Color.FromArgb(alpha, red, green, blue);
+        }
+
+        private static System.Drawing.Color GetImageColor(BitmapSource bitmap)
+        {
+
+            ScaleTransform scale = new ScaleTransform(1 / bitmap.PixelWidth, 1 / bitmap.PixelHeight);
+
+            TransformedBitmap transformedBitmap = new TransformedBitmap(bitmap, scale);
+
+            return GetPixelColor(transformedBitmap, 0, 0);
+        }
+
+        private static void ShowImage(BitmapSource bitmap, bool smoothing = true)
+        {
+            ShowImage showImage = new ShowImage();
+
+            if (!smoothing) RenderOptions.SetBitmapScalingMode(showImage, BitmapScalingMode.NearestNeighbor); // виключає зглажування
+
+            showImage.Img.Source = bitmap;
+            showImage.Show();
+        }
+
+        public static BitmapSource GenerateImageFromTiles(
+        Dictionary<System.Drawing.Point, System.Drawing.Color> pixelData,
+        Dictionary<BitmapSource, System.Drawing.Color> tileData)
+        {
+            // Знаходимо розміри результуючого зображення
+            int maxX = pixelData.Keys.Max(p => p.X);
+            int maxY = pixelData.Keys.Max(p => p.Y);
+            int tileWidth = tileData.First().Key.PixelWidth;
+            int tileHeight = tileData.First().Key.PixelHeight;
+
+            // Створюємо нове зображення для результату
+            var resultBitmap = new WriteableBitmap(
+                (maxX + 1) * tileWidth,
+                (maxY + 1) * tileHeight,
+                96, 96, System.Windows.Media.PixelFormats.Bgra32, null);
+
+            // Проходимо по кожному пікселю в першому словнику
+            foreach (var pixel in pixelData)
+            {
+                System.Drawing.Point position = pixel.Key;
+                System.Drawing.Color targetColor = pixel.Value;
+
+                // Знаходимо найближчий колір у другому словнику
+                var closestTile = FindClosestTile(targetColor, tileData);
+
+                // Копіюємо відповідну картинку в результуюче зображення
+                CopyTileToResult(resultBitmap, closestTile, position, tileWidth, tileHeight);
+            }
+
+            return resultBitmap;
+        }
+
+        private static BitmapSource FindClosestTile(System.Drawing.Color targetColor, Dictionary<BitmapSource, System.Drawing.Color> tileData)
+        {
+            BitmapSource closestTile = null;
+            double minDistance = double.MaxValue;
+
+            foreach (var tile in tileData)
+            {
+                double distance = ColorDistance(targetColor, tile.Value);
+                if (distance < minDistance)
+                {
+                    minDistance = distance;
+                    closestTile = tile.Key;
+                }
+            }
+
+            return closestTile;
+        }
+
+        private static double ColorDistance(System.Drawing.Color color1, System.Drawing.Color color2)
+        {
+            // Обчислюємо евклідову відстань між кольорами
+            int rDiff = color1.R - color2.R;
+            int gDiff = color1.G - color2.G;
+            int bDiff = color1.B - color2.B;
+            return Math.Sqrt(rDiff * rDiff + gDiff * gDiff + bDiff * bDiff);
+        }
+
+        private static void CopyTileToResult(WriteableBitmap resultBitmap, BitmapSource tile, System.Drawing.Point position, int tileWidth, int tileHeight)
+        {
+            // Перевірка на нульові або від'ємні розміри плитки
+            if (tileWidth <= 0 || tileHeight <= 0)
+            {
+                throw new ArgumentException("Розміри плитки (tileWidth та tileHeight) повинні бути більше нуля.");
+            }
+
+            // Перевірка на нульові посилання
+            if (resultBitmap == null || tile == null)
+            {
+                throw new ArgumentNullException("resultBitmap та tile не можуть бути null.");
+            }
+
+            // Визначаємо позицію для вставки
+            int startX = position.X * tileWidth;
+            int startY = position.Y * tileHeight;
+
+            // Перевірка, чи виходять координати за межі resultBitmap
+            if (startX < 0 || startY < 0 || startX + tileWidth > resultBitmap.PixelWidth || startY + tileHeight > resultBitmap.PixelHeight)
+            {
+                throw new ArgumentOutOfRangeException("Позиція плитки виходить за межі результуючого зображення.");
+            }
+
+            // Копіюємо пікселі з плитки в результуюче зображення
+            byte[] pixels = new byte[tileWidth * tileHeight * 4];
+            tile.CopyPixels(pixels, tileWidth * 4, 0);
+
+            // Вставляємо пікселі
+            resultBitmap.WritePixels(
+                new System.Windows.Int32Rect(startX, startY, tileWidth, tileHeight),
+                pixels, tileWidth * 4, 0);
         }
     }
 }
